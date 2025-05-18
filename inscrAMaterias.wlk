@@ -1,6 +1,6 @@
 class  Cursada {
-    const property materia
-    const property nota
+    var property materia
+    var property nota
 }
 
 class Carrera {
@@ -8,9 +8,9 @@ class Carrera {
 }
 
 class Materia {
-    const property correlativas = [] 
-    const property inscriptos = []
-    const property listaDeEspera = []  
+    var property correlativas = [] 
+    var property inscriptos = []
+    var property listaDeEspera = []  
     const property cupo 
 
     method agregarAInscriptos(alumno){
@@ -22,21 +22,27 @@ class Materia {
     method removerDeInscriptos(alumno){
         inscriptos.remove(alumno)
     }
-    method darCupo(alumno){
-        inscriptos.add(listaDeEspera.first())
-        alumno.removerMateriaEnEspera(self)
-        alumno.materiasInscriptas().add([self])
+    method darCupo(){
+        if (not listaDeEspera.isEmpty()){
+            const alumno = listaDeEspera.first()
+            inscriptos.add(alumno)
+            alumno.removerMateriaEnEspera(self)
+            alumno.materiasEnCurso().add(self)
+        }
     }
 }
 
 class Estudiante {
     const materiasAprobadas = []
-    const property carrerasEnCurso = []
+    var property carrerasEnCurso = []
     const materiasInscriptas = [] 
     const materiasEnEspera = []
 
-    method materiasEnEspera(){
-        return materiasEnEspera.flatten()
+    method materiasEnCurso(){
+        return self.todasLasMateriasDeCarrerasInscriptas().filter({materia => materia.inscriptos().contains(self)})
+    }
+    method materiasEnCola() {
+        return self.todasLasMateriasDeCarrerasInscriptas().filter({materia => materia.listaDeEspera().contains(self)})
     }
 
     method removerMateriaEnEspera(_materia){
@@ -53,7 +59,7 @@ class Estudiante {
         return materiasEnEspera.contains(_materia)
     }
 
-    method materiasAprobadas(){
+    method aprobaciones(){
         return materiasAprobadas
     }
 
@@ -90,7 +96,7 @@ class Estudiante {
     }
 
     method tieneAprobada(_materia) {
-        return materiasAprobadas.any ({cursada => cursada.materia() == _materia })
+        return materiasAprobadas.any({cursada => cursada.materia() == _materia })
     }
 
     method todasLasMateriasDeCarrerasInscriptas() {
@@ -112,21 +118,22 @@ class Estudiante {
     }
 
     method perteneceACarrerasCursando(_materia) {
-        return carrerasEnCurso.any({carrera => carrera.materias().contains(_materia) })
+        return carrerasEnCurso.any({carrera => carrera.materias().contains(_materia) }) 
     }
 
     method cumpleCorrelativas(_materia) {
-        return _materia.correlativas().any({materia => self.materiasAprobadas().contains(materia)})
+        return _materia.correlativas().all({correlativa => self.tieneAprobada(correlativa)})
     }
 
     method inscribirAMateria(_materia) {
         self.validarSiPuedeInscribirAMateria(_materia)
-        if (_materia.cupo() < _materia.inscriptos().size()) {
+        if (_materia.cupo() > _materia.inscriptos().size()) {
             _materia.agregarAInscriptos(self)
             materiasInscriptas.add(_materia)
         }
         else
            _materia.agregarAListaDeEspera(self)
+           materiasEnEspera.add(_materia)
     }
 
     method validarSiPuedeInscribirAMateria(_materia) {
@@ -138,8 +145,12 @@ class Estudiante {
     method darDeBajaMateria(_materia) {
         materiasInscriptas.remove(_materia)
         _materia.removerDeInscriptos(self)
-        _materia.darCupo(self)
+        _materia.darCupo()
     }
 
+    method materiasALasQueSePuedeInscribirDe(_carrera) {
+       return  _carrera.materias().filter({materia => self.puedeInscribirseA(materia)})
+    }
+    
 }
 
